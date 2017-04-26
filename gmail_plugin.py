@@ -2,6 +2,7 @@ import requests, re, sys, os
 from bs4 import BeautifulSoup as bs
 from datetime import time
 from pydbus import SessionBus
+import configparser as cp
 
 bus = SessionBus()
 notifications = bus.get('.Notifications')
@@ -88,6 +89,10 @@ class Gmail:
 
 url_login = "https://accounts.google.com/ServiceLogin"
 url_auth = "https://accounts.google.com/ServiceLoginAuth"
+config = cp.ConfigParser()
+config.read(os.path.join(sys.path[0], 'config.ini'))
+email = config[config.sections()[0]]['email']
+passwd = config[config.sections()[0]]['password']
 session = Gmail(url_login, url_auth, email, passwd)
 session.get_new_mails("https://mail.google.com/mail/u/0/h/1iznvqv6mt7q7/?s=q&q=label%3Aunread&nvp_site_mail=Search%20Mail")
 session.get_last_login_time("https://mail.google.com/mail/u/0/h/qnsm1grq5h52/?&v=ac")
