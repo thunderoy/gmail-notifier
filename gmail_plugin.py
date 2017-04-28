@@ -8,9 +8,11 @@ bus = SessionBus()
 notifications = bus.get('.Notifications')
 
 class Gmail:
-    def __init__(self, url_login, url_auth, email, passwd):
+    def __init__(self, url_login, url_auth, url_mail, url_time, email, passwd):
         self.url_login = url_login
         self.url_auth = url_auth
+        self.url_mail = url_mail
+        self.url_time = url_time
         self.email = email
         self.passwd = passwd
         self.login()
@@ -25,26 +27,27 @@ class Gmail:
                 in_dict[u['name']] = u['value']
         in_dict['Email'] = self.email
         in_dict['Passwd'] = self.passwd
-        res = self.ses.post(self.url_auth, data=in_dict)
+        self.ses.post(self.url_auth, data=in_dict)
+        self.get_last_login_time()
     
     
-    def get_last_login_time(self, url):
-        login_info = self.ses.get(url)
+    def get_last_login_time(self):
+        login_info = self.ses.get(self.url_time)
         soup = bs(login_info.content, 'html.parser')
         soup = soup.find_all('td', text=re.compile("ago"))
         self.t = soup[1].text.split("(")[0].strip("").split()
         self.t = "".join(self.t)
-        return self.t
+        self.get_new_mails()
 
 
-    def get_new_mails(self, url):
+    def get_new_mails(self):
         self.a = []
-        mail_list = self.ses.get(url)
+        mail_list = self.ses.get(self.url_mail)
         soup = bs(mail_list.content, 'html.parser')
         soup = soup.find_all('table')[2].tr.find("table", attrs={'bgcolor': '#e8eef7'}).find_all("tr", attrs={'bgcolor': '#ffffff'})[0].find_all('td')
         for i in range(3, len(soup), 4):
             self.a.append("".join(soup[i].b.text.split("\xa0")))
-        return self.a
+        self.notify()
 
      
     def notify(self):
@@ -87,13 +90,16 @@ class Gmail:
             s = "You have %d new mails and %d unread mails from yesterday" % (c1, c2)
             notifications.Notify('Gmail_notifier', 0, icon, "Gmail", s, [], {}, 5000)
 
+
 url_login = "https://accounts.google.com/ServiceLogin"
 url_auth = "https://accounts.google.com/ServiceLoginAuth"
-config = cp.ConfigParser()
-config.read(os.path.join(sys.path[0], 'config.ini'))
-email = config[config.sections()[0]]['email']
-passwd = config[config.sections()[0]]['password']
-session = Gmail(url_login, url_auth, email, passwd)
-session.get_new_mails("https://mail.google.com/mail/u/0/h/1iznvqv6mt7q7/?s=q&q=label%3Aunread&nvp_site_mail=Search%20Mail")
-session.get_last_login_time("https://mail.google.com/mail/u/0/h/qnsm1grq5h52/?&v=ac")
-session.notify()
+url_mail = "https://mail.google.com/mail/u/0/h/1iznvqv6mt7q7/?s=q&q=label%3Aunread&nvp_site_mail=Search%20Mail"
+url_time = "https://mail.google.com/mail/u/0/h/qnsm1grq5h52/?&v=ac"
+
+
+if __name__ == "__main__":
+    config = cp.ConfigParser()
+    config.read(os.path.join(sys.path[0], 'config.ini'))
+    email = config[config.sections()[0]]['email']
+    passwd = config[config.sections()[0]]['password']
+    session = Gmail(url_login, url_auth, url_mail, url_time, email, passwd)
