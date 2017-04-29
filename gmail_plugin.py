@@ -19,7 +19,11 @@ class Gmail:
 
     def login(self):
         self.ses = requests.session()
-        login_html = self.ses.get(self.url_login)
+        try:
+            login_html = self.ses.get(self.url_login)
+        except:
+            notifications.Notify('Gmail_notifier', 0, "", "", "No internet connection :(", [], {}, 5000)
+            return
         soup = bs(login_html.content, 'html.parser').find('form').find_all('input')
         in_dict = {}
         for u in soup:
